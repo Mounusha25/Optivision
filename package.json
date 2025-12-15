@@ -1,0 +1,28 @@
+{
+  "name": "optivision",
+  "version": "1.0.0",
+  "description": "Advanced Optical Vision Intelligence Platform",
+  "main": "landing.html",
+  "scripts": {
+    "dev": "python3 -m http.server 3000",
+    "start": "python3 -m http.server 3000"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Brijesh03032001/OptiVision.git"
+  },
+  "keywords": [
+    "ai",
+    "computer-vision",
+    "machine-learning", 
+    "real-time",
+    "image-processing",
+    "optical-intelligence"
+  ],
+  "author": "Brijesh Kumar",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/Brijesh03032001/OptiVision/issues"
+  },
+  "homepage": "https://github.com/Brijesh03032001/OptiVision#readme"
+}

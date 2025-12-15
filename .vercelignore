@@ -1,0 +1,9 @@
+llama.cpp/
+*.md
+LICENSE
+setup*.sh
+run_server*.sh
+Dockerfile*
+railway.json
+.git
+.gitignore

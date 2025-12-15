@@ -1,0 +1,12 @@
+.git
+.vscode
+.DS_Store
+*.log
+node_modules
+.env
+.env.local
+llama.cpp/build
+llama.cpp/.git
+*.cache
+.pytest_cache
+__pycache__

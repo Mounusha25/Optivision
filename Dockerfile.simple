@@ -1,0 +1,67 @@
+# Simple Ubuntu-based build for OptiVision
+FROM ubuntu:22.04
+
+# Prevent interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    curl \
+    wget \
+    python3 \
+    python3-pip \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy application files
+COPY . .
+
+# Make scripts executable
+RUN chmod +x *.sh
+
+# Build llama.cpp
+RUN if [ ! -d "llama.cpp" ]; then \
+        git clone https://github.com/ggerganov/llama.cpp; \
+    fi && \
+    cd llama.cpp && \
+    rm -rf build && \
+    mkdir -p build && \
+    cd build && \
+    cmake .. -DLLAMA_SERVER=ON -DCMAKE_BUILD_TYPE=Release && \
+    cmake --build . --config Release
+
+# Create a simple startup script
+RUN echo '#!/bin/bash\n\
+set -e\n\
+echo "🚀 Starting OptiVision..."\n\
+\n\
+# Start llama server in background\n\
+cd /app/llama.cpp/build\n\
+model="ggml-org/SmolVLM-500M-Instruct-GGUF"\n\
+echo "📡 Starting backend with model: $model"\n\
+./bin/llama-server -hf "$model" --host 0.0.0.0 --port 8080 &\n\
+\n\
+# Wait a moment for backend to start\n\
+sleep 5\n\
+\n\
+# Start frontend server\n\
+cd /app\n\
+echo "🌐 Starting frontend on port 3000"\n\
+python3 -m http.server 3000 --bind 0.0.0.0\n\
+' > /app/start.sh && chmod +x /app/start.sh
+
+# Expose ports
+EXPOSE 3000 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+    CMD curl -f http://localhost:3000/landing.html || exit 1
+
+# Start application
+CMD ["/app/start.sh"]

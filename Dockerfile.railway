@@ -1,0 +1,59 @@
+# Railway Deployment Configuration
+FROM ubuntu:22.04
+
+# Prevent interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    curl \
+    wget \
+    python3 \
+    python3-pip \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy application files
+COPY . .
+
+# Make scripts executable
+RUN chmod +x *.sh
+
+# Build llama.cpp for Railway
+RUN if [ ! -d "llama.cpp" ]; then \
+        git clone https://github.com/ggerganov/llama.cpp; \
+    fi && \
+    cd llama.cpp && \
+    rm -rf build && \
+    mkdir -p build && \
+    cd build && \
+    cmake .. -DLLAMA_SERVER=ON -DCMAKE_BUILD_TYPE=Release && \
+    cmake --build . --config Release
+
+# Create startup script for Railway
+RUN echo '#!/bin/bash\n\
+set -e\n\
+echo "🚀 Starting OptiVision Backend on Railway..."\n\
+\n\
+# Start llama server\n\
+cd /app/llama.cpp/build\n\
+model="ggml-org/SmolVLM-500M-Instruct-GGUF"\n\
+echo "📡 Starting backend with model: $model"\n\
+./bin/llama-server -hf "$model" --host 0.0.0.0 --port ${PORT:-8080}\n\
+' > /app/start-railway.sh && chmod +x /app/start-railway.sh
+
+# Expose port
+EXPOSE ${PORT:-8080}
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+    CMD curl -f http://localhost:${PORT:-8080}/health || exit 1
+
+# Start application
+CMD ["/app/start-railway.sh"]
