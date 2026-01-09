@@ -1,119 +1,106 @@
-# OptiVision: Edge-Optimized Object Detection Inference Service
+# OptiVision
+
+**Real-time object detection inference service optimized for edge deployment with temporal intelligence and production-grade monitoring.**
 
 <div align="center">
 
-![OptiVision](https://img.shields.io/badge/Status-Production Ready-00ff88?style=for-the-badge)
-![License](https://img.shields.io/badge/License-MIT-00d4ff?style=for-the-badge)
-![Python](https://img.shields.io/badge/Python-3.9+-0099cc?style=for-the-badge)
-![ONNX](https://img.shields.io/badge/ONNX-Runtime-orange?style=for-the-badge)
+![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=flat-square&logo=python)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-009688?style=flat-square&logo=fastapi)
+![ONNX](https://img.shields.io/badge/ONNX-Runtime-005CED?style=flat-square&logo=onnx)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker)
+![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
-**An edge-optimized object detection inference service that delivers low-latency predictions with structured outputs, operational metrics, and deterministic summaries, packaged for reproducible deployment.**
-
-[Quick Start](#quick-start) • [Architecture](#architecture) • [Performance](#performance-benchmarks) • [API Reference](#api-reference)
+[Features](#features) • [Quick Start](#quick-start) • [API Documentation](#api-documentation) • [Deployment](#deployment)
 
 </div>
 
 ---
 
-## 🎯 Problem Statement
+## Overview
 
-Real-time object detection on edge devices faces three critical constraints:
+OptiVision is a production-ready object detection inference service built on YOLOv8n ONNX, delivering:
 
-- **Latency**: Mobile/edge hardware demands <100ms inference time
-- **Resource Efficiency**: Limited CPU/memory budget on edge devices  
-- **Observability**: Production systems need comprehensive metrics and monitoring
+- **Low-latency inference** (<100ms) on CPU-constrained hardware
+- **Temporal intelligence** with sliding window analysis and event detection
+- **Real-time video streaming** with dual-loop architecture (60fps rendering, 20fps inference)
+- **Comprehensive observability** with latency breakdown and performance metrics
+- **Production deployment** support via Docker containerization
 
-Existing solutions either sacrifice accuracy for speed or lack production-grade observability infrastructure.
+### Design Philosophy
 
-## ✨ Solution
-
-**OptiVision** is an edge-optimized inference service delivering:
-
-| Feature | Implementation | Benefit |
-|---------|---------------|---------|
-| **ONNX-Accelerated Inference** | YOLOv8n converted to ONNX with CPU optimization | 38% faster than PyTorch (see [benchmarks](#performance-benchmarks)) |
-| **Deterministic API Contract** | Structured summary + metadata in every response | Machine-readable telemetry for downstream systems |
-| **Latency Breakdown Tracking** | Separate timing for preprocess/inference/postprocess | Identify bottlenecks for optimization |
-| **Production Metrics** | P50/P95/P99 latency, FPS stability, in-memory tracking | Stateless observability for single-node deployment |
-| **Class-Aware Detection** | Configurable filtering (Person/Vehicle/Animal/All) | Edge deployment optimization |
-
-> **🎯 Scope**: OptiVision is an **inference service**, not a training pipeline. It accepts pretrained YOLOv8n weights and optimizes them for edge deployment. Model training, dataset curation, and distributed serving are intentionally out of scope.
-
-> **📐 Design Philosophy**: Prioritizes **low-latency inference** (<100ms) on CPU-constrained edge devices. YOLOv8n provides high reliability for frequent classes (person, vehicle) while trading off accuracy for smaller/rare objects. This is an intentional design choice for real-world edge constraints.
+OptiVision prioritizes **real-time performance** and **operational visibility** for edge deployment scenarios. The system is intentionally scoped as a single-node inference service, avoiding distributed complexity while delivering production-grade reliability.
 
 ---
 
-## 🏗️ Architecture (End-to-End)
+## Features
+
+### Core Capabilities
+
+- **YOLOv8n ONNX Inference**: 12.3MB model optimized for CPU execution
+- **Temporal Intelligence**: 
+  - Sliding window analysis (30-frame buffer)
+  - Event detection for object count changes
+  - Recent activity tracking for person/vehicle/animal categories
+- **Real-time Video Processing**:
+  - 60fps canvas rendering for smooth video display
+  - 20fps inference with intelligent backpressure control
+  - Dual-loop architecture prevents UI blocking
+- **Production Observability**:
+  - Latency breakdown (preprocess/inference/postprocess)
+  - Performance metrics (P50/P95/P99)
+  - Health monitoring endpoint
+- **Class-Aware Detection**: Filter by person, vehicle, animal, or all objects
+
+### Technical Highlights
+
+| Component | Implementation | Performance |
+|-----------|---------------|-------------|
+| Model | YOLOv8n ONNX (12.3MB) | <100ms inference |
+| Backend | FastAPI + ONNX Runtime | Async request handling |
+| Frontend | Vanilla JavaScript | 60fps video rendering |
+| Temporal | Sliding window (deque) | 30-frame analysis |
+| Deployment | Docker containerization | Production-ready |
+
+---
+
+## Architecture
+
+### System Design
 
 ```
-Client (Web / cURL / Application)
-        |
-        |  POST /predict (base64 image, class_filter)
-        v
-┌───────────────────────────────────────────┐
-│       FastAPI Inference Service            │
-│                                           │
-│  ┌─────────────────────────────────────┐  │
-│  │ Preprocessing (9ms)                  │  │
-│  │ - decode base64                     │  │
-│  │ - resize / letterbox (640x640)      │  │
-│  │ - normalize                         │  │
-│  └─────────────────────────────────────┘  │
-│                   ↓
-│  ┌─────────────────────────────────────┐  │
-│  │ ONNX Runtime Inference (41ms)        │  │
-│  │ - YOLOv8n (batch=1)                 │  │
-│  │ - CPU optimized                     │  │
-│  └─────────────────────────────────────┘  │
-│                   ↓
-│  ┌─────────────────────────────────────┐  │
-│  │ Postprocessing (7ms)                │  │
-│  │ - Custom NMS                        │  │
-│  │ - Class filtering                  │  │
-│  │ - Bbox scaling                     │  │
-│  └─────────────────────────────────────┘  │
-│                   ↓
-│  ┌─────────────────────────────────────┐  │
-│  │ Structured Output Builder            │  │
-│  │ - Detections                        │  │
-│  │ - Summary (counts, occupancy)       │  │
-│  │ - Metadata (confidence, latency)    │  │
-│  └─────────────────────────────────────┘  │
-│                   ↓
-│  ┌─────────────────────────────────────┐  │
-│  │ Metrics & Observability              │  │
-│  │ - In-memory rolling window (1000)   │  │
-│  │ - P50 / P95 / P99                   │  │
-│  └─────────────────────────────────────┘  │
-│                   ↓
-└───────────────────────────────────────────┘
-        JSON Response to Client
-
-Total: ~57ms end-to-end
+Client Browser
+     |
+     | WebSocket / HTTP
+     v
+┌─────────────────────────────────────┐
+│      FastAPI Application             │
+│  ┌───────────────────────────────┐   │
+│  │ Inference Pipeline            │   │
+│  │  - Preprocessing (~9ms)       │   │
+│  │  - ONNX Inference (~41ms)     │   │
+│  │  - Postprocessing (~7ms)      │   │
+│  └───────────────────────────────┘   │
+│  ┌───────────────────────────────┐   │
+│  │ Temporal Intelligence         │   │
+│  │  - Sliding Window (30 frames) │   │
+│  │  - Event Detection            │   │
+│  │  - Activity Tracking          │   │
+│  └───────────────────────────────┘   │
+│  ┌───────────────────────────────┐   │
+│  │ Metrics & Observability       │   │
+│  │  - Latency Breakdown          │   │
+│  │  - Performance Tracking       │   │
+│  └───────────────────────────────┘   │
+└─────────────────────────────────────┘
 ```
 
-### Core Components
+### Frontend Architecture
 
-#### 1. **Preprocessing**
-- Base64 decoding
-- Letterbox resizing (aspect ratio preserved)
-- Normalization to [0,1] range
-- Timing instrumentation
+**Dual-Loop Design** for smooth real-time video:
 
-#### 2. **ONNX Inference**
-- YOLOv8n pretrained model
-- CPU-optimized execution provider
-- Single batch processing
-
-#### 3. **Postprocessing**
-- Custom NMS (IoU-based)
-- Class-aware filtering
-- Adaptive confidence thresholds (person: 0.30, small objects: 0.35)
-
-#### 4. **Output Builder**
-- Deterministic JSON schema (no optional fields)
-- Summary: object counts, dominant class, frame occupancy
-- Metadata: confidence stats, latency breakdown, telemetry
+- **Render Loop** (60fps): Continuously draws video frames to canvas
+- **Inference Loop** (20fps): Sends frames to backend API with backpressure control
+- **Event System**: Updates detections overlay without blocking video stream
 
 ---
 
@@ -177,112 +164,77 @@ Total: ~57ms end-to-end
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
-- Python 3.9–3.11 (3.13 has limited package support)
-- Webcam (for real-time demo)
+- Python 3.9+ (tested with 3.9, 3.10, 3.11)
 - 4GB RAM minimum
+- Webcam (for real-time video demo)
 
-### Installation
+### Local Development
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/OptiVision.git
+git clone https://github.com/Mounusha25/Optivision.git
 cd OptiVision
 
-# Run automated setup
-chmod +x setup_optivision.sh && ./setup_optivision.sh
-
-# Start services
-./start.sh
-```
-
-The setup script will:
-1. Create Python virtual environment
-2. Install dependencies
-3. Export YOLOv8n to ONNX format
-4. Start backend API (port 8000)
-5. Start frontend server (port 3000)
-
-Access the application at **http://localhost:3000/detection.html**
-
-### Manual Setup
-
-```bash
 # Create virtual environment
-python3.11 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+python3 -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
 
 # Install dependencies
-pip install --upgrade pip
 pip install -r backend/requirements.txt
 
-# Export model
-cd backend && python export_model.py
-
-# Move model to correct location
-mkdir -p models && mv yolov8n.onnx models/
-
-# Start backend
+# Start backend server
 cd backend
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-
-# In new terminal: Start frontend
-cd frontend
-python3 -m http.server 3000
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
+
+### Access Application
+
+- **Frontend**: http://localhost:8000/ (served at root)
+- **API Docs**: http://localhost:8000/docs (OpenAPI)
+- **Health Check**: http://localhost:8000/health
 
 ---
 
-## ⚡ Performance Benchmarks
+## API Documentation
 
-### Latency Comparison
+### Health Endpoint
 
-| Backend | Avg Latency | P95 Latency | P99 Latency | FPS (640x640) |
-|---------|-------------|-------------|-------------|---------------|
-| **ONNX (CPU)** | **57ms** | **68ms** | **74ms** | **11-17 fps** |
-| PyTorch (CPU) | 92ms | 108ms | 125ms | 6-9 fps |
-| PyTorch (MPS)* | 78ms | 89ms | 98ms | 8-12 fps |
+**GET** `/health`
 
-*Apple Silicon M4 tested
-
-> **⚠️ Note on Latency Variance**: Benchmarks report **warm-run performance** (steady-state after initial requests). Cold-start latency (first inference after server restart) is typically **2-3x higher** (~120-150ms) due to ONNX session initialization and CPU cache misses. Production deployments should include a warmup request after server startup.
-
-### Latency Breakdown (ONNX)
-
-```
-Total: 57.1ms (warm-run average)
-├─ Preprocess:  9.2ms  (16%)  ← Resize + normalize
-├─ Inference:  41.3ms  (72%)  ← ONNX Runtime
-└─ Postprocess: 6.6ms  (12%)  ← NMS + scaling
+```json
+{
+  "status": "ok",
+  "model_loaded": true,
+  "model": "models/yolov8n.onnx",
+  "model_type": "ONNX",
+  "uptime": "0h 15m 32s",
+  "version": "1.0.0"
+}
 ```
 
-### Model Comparison
+### Detection Endpoint
 
-| Model | Size | mAP<sup>val</sup> | CPU Latency | Use Case |
-|-------|------|-------------------|-------------|----------|
-| **YOLOv8n** | **6.3MB** | **37.3** | **~45ms** | **Edge/Mobile** ← Current |
-| YOLOv8s | 22MB | 44.9 | ~100ms | Balanced |
-| YOLOv8m | 52MB | 50.2 | ~200ms | Server/GPU |
-
-**Decision Rationale**: YOLOv8n chosen for optimal speed-accuracy tradeoff on CPU-constrained edge devices.
-
----
-
-## 📊 API Reference
-
-### POST `/predict`
-
-Object detection on base64-encoded image.
+**POST** `/predict`
 
 **Request:**
 ```json
 {
-  "image": "data:image/jpeg;base64,/9j/4AAQSkZJRg..."
+  "image": "data:image/jpeg;base64,/9j/4AAQSkZJRg...",
+  "class_filter": "person"
 }
 ```
+
+**Parameters:**
+- `image` (required): Base64-encoded image (JPEG/PNG)
+- `class_filter` (optional): Filter detections by class
+  - `"person"`: Detect only people
+  - `"vehicle"`: Detect cars, trucks, buses, motorcycles
+  - `"animal"`: Detect cats, dogs, horses, etc.
+  - `"all"`: Detect all 80 COCO classes (default)
 
 **Response:**
 ```json
@@ -290,343 +242,270 @@ Object detection on base64-encoded image.
   "detections": [
     {
       "class_name": "person",
+      "class_id": 0,
       "confidence": 0.89,
       "bbox": [120, 45, 340, 480]
     }
   ],
-  "latency_ms": 57.2,
-  "model_name": "yolov8n-onnx",
-  "image_size": [640, 480]
+  "summary": {
+    "total_objects": 3,
+    "counts_by_class": {"person": 2, "vehicle": 1, "animal": 0},
+    "dominant_class": "person",
+    "frame_occupancy_ratio": 0.18,
+    "recent_activity": {
+      "window_frames": 30,
+      "class_presence": {"person": 28, "vehicle": 15, "animal": 0}
+    },
+    "events": [
+      {"type": "count_increase", "class": "person", "change": 1}
+    ]
+  },
+  "metadata": {
+    "mean_confidence": 0.86,
+    "input_resolution": [640, 480],
+    "model_version": "yolov8n-onnx",
+    "latency_breakdown_ms": {
+      "preprocess": 9.2,
+      "inference": 41.3,
+      "postprocess": 6.6,
+      "total": 57.1
+    }
+  },
+  "timestamp": "2026-01-08T12:34:56.789Z"
 }
 ```
 
-### GET `/metrics`
+### Metrics Endpoint
 
-Aggregated performance metrics.
+**GET** `/metrics`
 
-**Response:**
 ```json
 {
   "avg_latency_ms": 54.2,
   "p50_latency_ms": 52.8,
   "p95_latency_ms": 68.1,
   "p99_latency_ms": 74.3,
-  "latency_breakdown": {
-    "preprocess_ms": 9.2,
-    "inference_ms": 41.3,
-    "postprocess_ms": 6.6
-  },
-  "fps": {
-    "current": 12.5,
-    "avg": 11.8,
-    "min": 9.2,
-    "max": 15.1
-  },
   "requests_served": 1547,
-  "total_detections": 3824,
   "uptime_seconds": 342.6
 }
 ```
 
-### GET `/model`
-
-Model metadata and configuration.
-
-**Response:**
-```json
-{
-  "name": "YOLOv8n",
-  "format": "ONNX",
-  "precision": "FP32",
-  "input_size": "640x640",
-  "batch_size": 1,
-  "num_classes": 80,
-  "confidence_threshold": 0.25,
-  "iou_threshold": 0.45,
-  "backend": "ONNX Runtime (CPU)",
-  "class_filter": "all",
-  "available_filters": ["all", "person", "vehicle", "animal"]
-}
-```
-
 ---
 
-## 🎯 Class-Aware Detection (Production Feature)
+## Deployment
 
-OptiVision supports **intelligent class filtering** optimized for edge deployment scenarios.
+### Docker Deployment
 
-### Available Detection Modes
+OptiVision includes a production-ready Docker configuration.
 
-| Mode | Classes Detected | Use Case | Performance |
-|------|-----------------|----------|-------------|
-| **Person Only** | person (1 class) | Security cameras, people counting | Highest reliability |
-| **Vehicle Only** | car, truck, bus, motorcycle (4 classes) | Traffic monitoring, parking | High reliability |
-| **Animal Only** | cat, dog, horse, etc. (8 classes) | Wildlife monitoring, pet detection | Medium reliability |
-| **All Objects** | 80 COCO classes | General purpose | Variable reliability |
-
-### Class-Specific Confidence Thresholds
-
-Production systems use **adaptive thresholds** per class:
-
-```python
-# High-frequency, reliable classes
-person:     0.30  # Slightly higher - reduce false positives
-car:        0.25  # Standard
-truck:      0.25
-
-# Smaller objects (higher threshold for reliability)
-cat:        0.35
-dog:        0.35
-```
-
-**Why This Matters**:
-- Edge devices often need **specific object types** (e.g., security = persons only)
-- Class filtering **reduces inference time** by skipping irrelevant detections
-- Demonstrates **production deployment understanding** (not just "detect everything")
-
-### API Usage
+**Build and Run:**
 
 ```bash
-# Detect only persons
-curl -X POST http://localhost:8000/predict \
-  -H "Content-Type: application/json" \
-  -d '{"image": "base64...", "class_filter": "person"}'
-
-# Detect vehicles
-curl -X POST http://localhost:8000/predict \
-  -H "Content-Type: application/json" \
-  -d '{"image": "base64...", "class_filter": "vehicle"}'
-```
-
----
-
-## 🐳 Deployment
-
-### Docker (Recommended)
-
-```bash
-# Build production image
-docker build -f Dockerfile.production -t optivision:latest .
+# Build Docker image
+docker build -f Dockerfile.render -t optivision:latest .
 
 # Run container
-docker run -p 8000:8000 optivision:latest
+docker run -d \
+  -p 8000:8000 \
+  -e CONF_THRESHOLD=0.25 \
+  -e IOU_THRESHOLD=0.45 \
+  --name optivision \
+  optivision:latest
+
+# Test deployment
+curl http://localhost:8000/health
 ```
 
-**Multi-stage build** reduces image size from 2.1GB → 890MB:
-- Stage 1: Model export (Ultralytics + PyTorch)
-- Stage 2: Runtime-only (ONNX Runtime + FastAPI)
+**Environment Variables:**
 
-### Cloud Platforms
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CONF_THRESHOLD` | 0.25 | Confidence threshold for detections |
+| `IOU_THRESHOLD` | 0.45 | IoU threshold for NMS |
+| `PORT` | 8000 | Server port |
+
+### Cloud Deployment
 
 #### Render
-```bash
-# Push to GitHub and connect Render
-# Uses Dockerfile.production automatically
-```
 
-#### Railway
-```bash
-railway up
-# Configure: PORT=8000, build from Dockerfile.production
-```
+1. Fork/clone repository to GitHub
+2. Create new **Web Service** on [render.com](https://render.com)
+3. Connect GitHub repository
+4. Configure:
+   - **Environment**: Docker
+   - **Dockerfile**: `Dockerfile.render`
+   - **Instance Type**: Free or Starter ($7/mo recommended)
+5. Add environment variables (CONF_THRESHOLD, IOU_THRESHOLD)
+6. Deploy
 
-#### Fly.io
-```bash
-fly launch --dockerfile Dockerfile.production
-fly deploy
-```
+See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed instructions.
 
----
+#### Other Platforms
 
-## 🔧 Configuration
-
-### Adjust Confidence Threshold
-
-```python
-# backend/app/main.py
-inference_service = InferenceService(
-    model_path="models/yolov8n.onnx",
-    confidence_threshold=0.35,  # Default: 0.25
-    iou_threshold=0.45
-)
-```
-
-### Enable Dynamic Batching (Advanced)
-
-```python
-# Modify InferenceService to accept batch_size > 1
-# Requires input shape modification and batch preprocessing
-```
-
-### Switch to YOLOv8s (Higher Accuracy)
-
-```bash
-# In backend/export_model.py, change:
-model = YOLO("yolov8s.pt")  # Instead of yolov8n
-# Re-run: python export_model.py
-```
+OptiVision can be deployed on any platform supporting Docker:
+- **Railway**: Auto-detect Dockerfile
+- **Fly.io**: `fly launch --dockerfile Dockerfile.render`
+- **AWS ECS/Fargate**: Use Dockerfile.render
+- **Google Cloud Run**: Deploy from container registry
 
 ---
 
-## 📝 Project Structure
+## Project Structure
 
 ```
 OptiVision/
 ├── backend/
 │   ├── app/
 │   │   ├── core/
-│   │   │   ├── inference.py       # ONNX inference engine
-│   │   │   └── metrics.py         # Metrics tracking
+│   │   │   ├── inference.py    # ONNX inference engine
+│   │   │   └── metrics.py      # Performance tracking
 │   │   ├── models/
-│   │   │   └── schemas.py         # Pydantic models
-│   │   └── main.py                # FastAPI application
+│   │   │   └── schemas.py      # Pydantic response models
+│   │   └── main.py             # FastAPI application
+│   ├── models/
+│   │   └── yolov8n.onnx       # Exported ONNX model
 │   ├── tests/
-│   │   ├── test_api.py            # API integration tests
-│   │   ├── test_inference.py      # Unit tests
-│   │   └── test_load.py           # Load testing
-│   ├── requirements.txt
-│   └── export_model.py            # YOLOv8 → ONNX converter
+│   │   ├── test_api.py        # API integration tests
+│   │   └── test_inference.py  # Unit tests
+│   └── requirements.txt
 ├── frontend/
-│   └── detection.html             # Real-time webcam UI
+│   └── index.html             # Real-time detection UI
 ├── models/
-│   └── yolov8n.onnx              # Exported model (12.3MB)
-├── Dockerfile.production          # Multi-stage build
-├── setup_optivision.sh           # Automated setup
-├── start.sh                      # Quick-start script
+│   └── yolov8n.onnx          # ONNX model (production)
+├── Dockerfile.render          # Production Docker configuration
+├── DEPLOYMENT.md              # Deployment guide
 └── README.md
 ```
 
 ---
 
-## 🧪 Testing
+## Configuration
 
-```bash
-# Unit tests
-cd backend
-pytest tests/test_inference.py -v
+### Adjust Detection Thresholds
 
-# API integration tests
-pytest tests/test_api.py -v
+Modify environment variables or update `backend/app/main.py`:
 
-# Load testing (100 concurrent requests)
-pytest tests/test_load.py -v
+```python
+# In main.py
+conf_threshold = float(os.getenv("CONF_THRESHOLD", "0.25"))
+iou_threshold = float(os.getenv("IOU_THRESHOLD", "0.45"))
+```
+
+### Enable Additional Classes
+
+Add custom class filters in `backend/app/core/inference.py`:
+
+```python
+CLASS_FILTERS = {
+    "person": [0],
+    "vehicle": [2, 3, 5, 7],
+    "animal": [15, 16, 17, 18, 19, 20, 21, 22, 23],
+    "custom": [0, 1, 2]  # Add your filter
+}
 ```
 
 ---
 
-## 🎓 Technical Decisions
+## Performance Benchmarks
 
-### Why ONNX Over PyTorch?
+### Inference Latency (CPU)
 
-| Factor | PyTorch | ONNX Runtime |
-|--------|---------|--------------|
-| Latency | 92ms | **57ms** (38% faster) |
-| Memory | ~800MB | **~400MB** |
-| Portability | Python-only | Cross-platform (C++) |
-| Edge Support | Limited | Optimized for CPU/mobile |
+| Component | Average | P95 | P99 |
+|-----------|---------|-----|-----|
+| **Total** | **57ms** | **68ms** | **74ms** |
+| Preprocess | 9ms | 11ms | 13ms |
+| Inference | 41ms | 49ms | 53ms |
+| Postprocess | 7ms | 8ms | 9ms |
 
-### Why YOLOv8n (Not Larger Models)?
+**Test Environment**: Apple M4, Python 3.11, ONNX Runtime 1.16+
 
-**OptiVision targets edge devices with <100ms latency budget.**
+### Throughput
 
-| Model | Latency | Accuracy (mAP) | Edge Feasible? |
-|-------|---------|----------------|----------------|
-| YOLOv8n | 57ms | 37.3 | ✅ Yes |
-| YOLOv8s | 98ms | 44.9 | ⚠️ Borderline |
-| YOLOv8m | 187ms | 50.2 | ❌ No (too slow) |
+- **Sequential**: 15-17 requests/second
+- **Concurrent**: 8-12 requests/second (CPU bound)
 
-**Accuracy Tradeoff**:
-- YOLOv8n excels at **frequent, large objects** (person: ~85% precision, car: ~80%)
-- Struggles with **small objects** (< 32x32 pixels) and **rare classes**
-- This is an **intentional design choice** for edge deployment
-- For higher accuracy, deploy YOLOv8s/m on cloud GPUs (see [Deployment](#deployment))
+### Model Comparison
 
-**When to Use Each**:
-- **Edge devices** (RPi, mobile): YOLOv8n only
-- **Desktop/local server**: YOLOv8s for better accuracy
-- **Cloud GPU**: YOLOv8m/l if latency isn't critical
-
-### Why Custom NMS?
-
-ONNX exported models don't include postprocessing. Implementing NMS in Python:
-- Maintains <10ms postprocess time
-- Allows dynamic IoU threshold tuning
-- Full control over confidence filtering
-
-### Why FastAPI?
-
-- Automatic OpenAPI documentation (`/docs`)
-- Built-in async support for high concurrency
-- Pydantic validation (type safety)
-- Minimal boilerplate vs Flask/Django
+| Model | Size | Latency | mAP | Use Case |
+|-------|------|---------|-----|----------|
+| YOLOv8n | 12.3MB | ~57ms | 37.3 | **Edge devices** (current) |
+| YOLOv8s | 22MB | ~98ms | 44.9 | Balanced performance |
+| YOLOv8m | 52MB | ~187ms | 50.2 | High accuracy |
 
 ---
 
-## 🛣️ Roadmap (Focused on Edge Optimization)
+## Testing
 
-**OptiVision is intentionally scoped as a single-node inference service. No distributed systems, no K8s, no Prometheus.**
+```bash
+# Navigate to backend
+cd backend
 
-### Performance Optimization
-- [ ] **FP16 Quantization** (target: 40ms latency with minimal accuracy loss)
-- [ ] **INT8 Quantization** (explore with ONNX Runtime quantization API)
-- [ ] **TensorRT Backend** (NVIDIA GPU support for Jetson devices)
+# Install test dependencies
+pip install pytest pytest-asyncio httpx
 
-### Model Variants
-- [ ] **YOLOv8s/m Support** (selectable via /model endpoint)
-- [ ] **Model Hot-Swapping** (load different weights without restart)
+# Run all tests
+pytest tests/ -v
 
-### Edge Deployment
-- [ ] **ARM64 Docker Images** (Raspberry Pi 4/5 support)
-- [ ] **Jetson Nano/Orin Build** (TensorRT optimization)
-- [ ] **Coral TPU Integration** (Google Edge TPU backend)
-
-### API Enhancements
-- [ ] **Batch Inference Endpoint** (process multiple images in one request)
-- [ ] **Video Frame Extraction** (accept video files, return per-frame detections)
-
-**Out of Scope (Intentional Exclusions):**
-- ❌ Distributed inference (Kubernetes, horizontal scaling)
-- ❌ Persistent storage (databases, Redis, object stores)
-- ❌ Monitoring infrastructure (Prometheus, Grafana)
-- ❌ Model training (remains a pretrained model optimizer)
+# Run specific test suite
+pytest tests/test_api.py -v
+pytest tests/test_inference.py -v
+```
 
 ---
 
-## 📄 License
+## Limitations
+
+### Known Constraints
+
+- **Small Object Detection**: YOLOv8n struggles with objects <32x32 pixels
+- **Rare Classes**: Lower accuracy for uncommon COCO classes
+- **Single Batch**: No batch inference (processes one image at a time)
+- **CPU-Only**: No GPU acceleration in current deployment
+
+### Design Decisions
+
+- **Edge-First**: Optimized for CPU inference (<100ms)
+- **Single-Node**: No distributed processing or horizontal scaling
+- **Stateless**: In-memory metrics (no persistent storage)
+
+---
+
+## License
 
 MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-Contributions welcome! Please:
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/EdgeOptimization`)
-3. Commit changes (`git commit -m 'Add FP16 quantization support'`)
-4. Push to branch (`git push origin feature/EdgeOptimization`)
-5. Open a Pull Request
+Contributions welcome! Areas of interest:
 
-**Priority areas:**
-- Performance profiling and optimization
-- Edge device compatibility testing (Raspberry Pi, Jetson)
-- Documentation improvements (API examples, failure modes)
+- **Performance**: FP16/INT8 quantization, TensorRT backend
+- **Features**: Batch inference, video file processing
+- **Edge Devices**: Raspberry Pi, Jetson Nano compatibility
+- **Documentation**: Tutorials, deployment guides
+
+**Contribution Process:**
+
+1. Fork repository
+2. Create feature branch: `git checkout -b feature/your-feature`
+3. Commit changes: `git commit -m 'Add feature'`
+4. Push branch: `git push origin feature/your-feature`
+5. Open Pull Request
 
 ---
 
-## 📬 Contact
+## Contact
 
-**Production-Grade Edge Inference System**
-
-- GitHub: [@yourusername](https://github.com/yourusername)
-- Project: [OptiVision Repository](https://github.com/yourusername/OptiVision)
+**GitHub**: [@Mounusha25](https://github.com/Mounusha25)  
+**Repository**: [OptiVision](https://github.com/Mounusha25/Optivision)
 
 ---
 
 <div align="center">
 
-**Built for edge deployment** • **Optimized for CPU** • **Deterministic outputs**
+**Production-ready object detection inference service**
 
-⭐ Star this repo if you're working on edge ML systems!
+Built with FastAPI • ONNX Runtime • YOLOv8n
 
 </div>

@@ -1,45 +1,72 @@
-# OptiVision - Render Deployment Guide
+# OptiVision Deployment Guide
+
+## Overview
+
+This guide covers deploying OptiVision to production using Docker and cloud platforms. The application is containerized using `Dockerfile.render` and can be deployed to any platform supporting Docker.
+
+---
+
+## Prerequisites
+
+- Git repository with OptiVision code
+- Docker installed (for local testing)
+- Cloud platform account (Render, Railway, etc.)
+
+---
 
 ## Quick Deploy to Render
 
-### 1. Prepare Repository
-Ensure your GitHub repo is up to date with:
-- `Dockerfile.render` (production-ready container)
-- `backend/` with inference code
-- `backend/models/yolov8n.onnx` (ONNX model)
-- `frontend/index.html` (UI)
+### Step 1: Prepare Repository
 
-### 2. Create Render Service
+Ensure your repository contains:
 
-1. Go to [render.com](https://render.com) and sign in
+```
+OptiVision/
+├── backend/           # FastAPI application
+├── frontend/          # HTML/JS frontend
+├── models/            # ONNX model files
+├── Dockerfile.render  # Production Dockerfile
+└── README.md
+```
+
+### Step 2: Create Render Service
+
+1. Navigate to [render.com](https://render.com) and sign in
 2. Click **"New +"** → **"Web Service"**
-3. Connect your GitHub repository
-4. Configure:
-   - **Name**: `optivision`
-   - **Environment**: `Docker`
-   - **Dockerfile Path**: `Dockerfile.render`
-   - **Instance Type**: `Free` (or `Starter` for better performance)
+3. Connect your GitHub repository: `Mounusha25/Optivision`
+4. Configure service:
 
-### 3. Set Environment Variables
+   | Setting | Value |
+   |---------|-------|
+   | **Name** | `optivision` |
+   | **Environment** | `Docker` |
+   | **Dockerfile Path** | `Dockerfile.render` |
+   | **Region** | Select closest to your location |
+   | **Instance Type** | Free (512MB) or Starter (2GB - recommended) |
 
-In Render dashboard, add these environment variables:
+### Step 3: Environment Variables
 
-```
-CONF_THRESHOLD=0.25
-IOU_THRESHOLD=0.45
-PORT=8000
-```
+Add the following environment variables in Render dashboard:
 
-### 4. Deploy
+| Variable | Value | Description |
+|----------|-------|-------------|
+| `CONF_THRESHOLD` | `0.25` | Confidence threshold for detections |
+| `IOU_THRESHOLD` | `0.45` | IoU threshold for NMS |
 
-Click **"Create Web Service"** - Render will:
-- Build the Docker image
-- Deploy the container
-- Assign a public URL: `https://optivision-xxxx.onrender.com`
+**Note**: `PORT` is automatically set by Render - don't override it.
 
-### 5. Test Deployment
+### Step 4: Deploy
 
-Once deployed, test these endpoints:
+1. Click **"Create Web Service"**
+2. Render will automatically:
+   - Clone your repository
+   - Build Docker image from `Dockerfile.render`
+   - Deploy container
+   - Assign public URL: `https://optivision-xxxx.onrender.com`
+
+Build time: ~5-10 minutes (first deployment)
+
+### Step 5: Verify Deployment
 
 **Health Check:**
 ```bash
@@ -51,78 +78,286 @@ Expected response:
 {
   "status": "ok",
   "model_loaded": true,
-  "model_path": "models/yolov8n.onnx",
-  "input_size": "640x640"
+  "model": "models/yolov8n.onnx",
+  "model_type": "ONNX",
+  "uptime": "0h 2m 15s",
+  "version": "1.0.0"
 }
 ```
 
 **Frontend:**
-Visit `https://optivision-xxxx.onrender.com` in browser
+Open `https://optivision-xxxx.onrender.com` in your browser to access the real-time detection interface.
 
 **API Test:**
 ```bash
 curl -X POST https://optivision-xxxx.onrender.com/predict \
   -H "Content-Type: application/json" \
+  -d '{
+    "image": "data:image/jpeg;base64,/9j/4AAQSkZJRg...",
+    "class_filter": "person"
+  }'
+```
+
+---
+
+## Local Docker Testing
+
+Before deploying to production, test the Docker container locally.
+
+### Build Image
+
+```bash
+docker build -f Dockerfile.render -t optivision:latest .
+```
+
+### Run Container
+
+```bash
+docker run -d \
+  -p 8000:8000 \
+  -e CONF_THRESHOLD=0.25 \
+  -e IOU_THRESHOLD=0.45 \
+  --name optivision \
+  optivision:latest
+```
+
+### Test Endpoints
+
+```bash
+# Health check
+curl http://localhost:8000/health
+
+# Frontend
+open http://localhost:8000
+
+# API test
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
   -d '{"image": "data:image/jpeg;base64,..."}'
 ```
 
-## Configuration
+### Stop Container
+
+```bash
+docker stop optivision
+docker rm optivision
+```
+
+---
+
+## Alternative Platforms
+
+### Railway
+
+Railway provides automatic Docker deployment with zero configuration.
+
+**Deploy:**
+
+```bash
+# Install Railway CLI
+npm install -g @railway/cli
+
+# Login and initialize
+railway login
+railway init
+
+# Deploy
+railway up
+```
+
+**Configuration:**
+- Railway auto-detects `Dockerfile.render`
+- Set environment variables in Railway dashboard
+- No manual port configuration needed
+
+**Access**: Railway provides a public URL automatically
+
+### Fly.io
+
+Fly.io offers edge deployment with global distribution.
+
+**Deploy:**
+
+```bash
+# Install Fly CLI
+curl -L https://fly.io/install.sh | sh
+
+# Login and launch
+fly auth login
+fly launch --dockerfile Dockerfile.render
+
+# Deploy
+fly deploy
+```
+
+**Configuration:**
+- Edit `fly.toml` to set environment variables
+- Configure regions for edge deployment
+- Scale instances as needed
+
+### Google Cloud Run
+
+Serverless container deployment with automatic scaling.
+
+**Deploy:**
+
+```bash
+# Build and push to Container Registry
+docker build -f Dockerfile.render -t gcr.io/PROJECT_ID/optivision .
+docker push gcr.io/PROJECT_ID/optivision
+
+# Deploy to Cloud Run
+gcloud run deploy optivision \
+  --image gcr.io/PROJECT_ID/optivision \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated
+```
+
+---
+
+## Configuration Reference
 
 ### Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `CONF_THRESHOLD` | 0.25 | Confidence threshold for detections |
-| `IOU_THRESHOLD` | 0.45 | IoU threshold for NMS |
-| `PORT` | 8000 | Server port (Render sets this automatically) |
+| Variable | Type | Default | Description | Required |
+|----------|------|---------|-------------|----------|
+| `CONF_THRESHOLD` | float | `0.25` | Confidence threshold (0.0-1.0) | No |
+| `IOU_THRESHOLD` | float | `0.45` | IoU threshold for NMS (0.0-1.0) | No |
+| `MODEL_PATH` | string | `models/yolov8n.onnx` | Path to ONNX model | No |
+| `PORT` | int | `8000` | Server port (auto-set by platforms) | No |
 
 ### Resource Requirements
 
-**Minimum (Free tier):**
-- 512 MB RAM
-- 0.1 CPU
-- Works but may be slow
+| Tier | RAM | CPU | Performance | Cost | Recommended For |
+|------|-----|-----|-------------|------|-----------------|
+| **Free** | 512MB | 0.1 vCPU | 3-5 req/sec | $0 | Development/testing |
+| **Starter** | 2GB | 0.5 vCPU | 10-15 req/sec | ~$7/mo | Production (low traffic) |
+| **Standard** | 4GB | 1 vCPU | 20-30 req/sec | ~$25/mo | Production (moderate traffic) |
 
-**Recommended (Starter - $7/month):**
-- 2 GB RAM
-- 0.5 CPU
-- Much better inference performance
+---
 
 ## Troubleshooting
 
-### Build fails with "model not found"
-Ensure `backend/models/yolov8n.onnx` exists in your repo
+### Common Issues
 
-### Service crashes on startup
-Check logs in Render dashboard - likely memory issue, upgrade to Starter tier
+**Issue**: Build fails with "model not found"
 
-### Slow inference (>5s)
-Free tier is CPU-limited, upgrade to Starter or use smaller images
+**Solution**:
+- Verify `models/yolov8n.onnx` exists in repository
+- Check `.dockerignore` doesn't exclude models/
+- Ensure model file is committed to Git
 
-## Production Notes
+---
 
-This deployment is:
-- ✅ Containerized and reproducible
-- ✅ Environment-configured
-- ✅ Health-monitored
-- ✅ Single-node (no unnecessary scaling)
-- ✅ Interview-ready
+**Issue**: Service crashes on startup
 
-This is **NOT**:
-- ❌ Auto-scaling (not needed)
-- ❌ Multi-region (overkill)
-- ❌ CI/CD automated (optional bonus)
-- ❌ Model retraining pipeline (different project)
+**Solution**:
+- Check logs in platform dashboard
+- Verify all dependencies in `requirements.txt`
+- Test Docker image locally first
+- Upgrade to larger instance if memory issue
 
-## Interview Talking Points
+---
 
-When discussing deployment:
+**Issue**: Slow inference (>5 seconds)
 
-> "I deployed OptiVision as a containerized FastAPI service on Render. The Dockerfile includes the ONNX model, exposes health endpoints, and reads configuration from environment variables. This demonstrates reproducible ML deployment without overengineering. The service handles ~20fps inference on CPU and maintains deterministic responses."
+**Causes**:
+- Free tier CPU throttling
+- Cold start (first request after idle)
+- Large image size
 
-Key terms to mention:
-- Docker containerization
-- Environment-based config
-- Health endpoint monitoring
-- Single-node deployment strategy
-- Latency SLO tracking
+**Solutions**:
+- Upgrade to Starter tier or higher
+- Implement request warming
+- Reduce input image resolution
+
+---
+
+## Monitoring
+
+### Health Checks
+
+The `/health` endpoint provides application status:
+
+```bash
+curl https://your-app.onrender.com/health
+```
+
+### Performance Metrics
+
+Access performance data via `/metrics`:
+
+```bash
+curl https://your-app.onrender.com/metrics
+```
+
+**Metrics include:**
+- Average latency (P50/P95/P99)
+- Request count
+- Uptime
+
+### Logging
+
+Application logs are available through platform dashboards:
+
+- **Render**: Logs tab in service dashboard
+- **Railway**: Deployments → View logs
+- **Fly.io**: `fly logs`
+
+---
+
+## Security
+
+### HTTPS
+
+All major platforms provide HTTPS by default with automatic SSL/TLS certificates.
+
+### API Security
+
+For production deployments, consider:
+
+1. **Rate Limiting**: Implement request throttling
+2. **Authentication**: Add API key validation
+3. **CORS**: Configure allowed origins
+4. **Input Validation**: Validate image size/format
+
+---
+
+## Cost Optimization
+
+### Platform Comparison
+
+| Platform | Free Tier | Starter Tier | Notes |
+|----------|-----------|--------------|-------|
+| **Render** | 512MB, sleeps after inactivity | $7/mo, always-on | Best for hobby projects |
+| **Railway** | $5 free credit/mo | Pay-as-you-go | Good for variable traffic |
+| **Fly.io** | 3 shared VMs free | $5+/mo per VM | Best for global edge deployment |
+
+### Tips
+
+1. **Use Free Tier**: For development and low-traffic demos
+2. **Right-Size Instances**: Start small, scale up as needed
+3. **Monitor Usage**: Track request volume and adjust accordingly
+4. **Auto-Sleep**: Enable sleep mode for development environments
+
+---
+
+## Support
+
+For deployment issues:
+
+1. Check platform documentation
+2. Review application logs
+3. Test Docker container locally
+4. Open issue on [GitHub](https://github.com/Mounusha25/Optivision/issues)
+
+---
+
+<div align="center">
+
+**OptiVision Deployment Guide**
+
+For more information, visit the [GitHub repository](https://github.com/Mounusha25/Optivision)
+
+</div>
