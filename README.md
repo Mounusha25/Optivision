@@ -1,6 +1,6 @@
 # OptiVision
 
-**Real-time object detection inference service optimized for edge deployment with temporal intelligence and production-grade monitoring.**
+**Real-time object detection inference service optimized for edge deployment with temporal intelligence and production-style monitoring.**
 
 <div align="center">
 
@@ -18,17 +18,31 @@
 
 ## Overview
 
-OptiVision is a production-ready object detection inference service built on YOLOv8n ONNX, delivering:
+This project exists to demonstrate how an ML model can be transformed into a reliable, real-time inference system with observable behavior and clean integration boundaries.
+
+OptiVision is a deployment-ready object detection inference service built on YOLOv8n ONNX, delivering:
 
 - **Low-latency inference** (<100ms) on CPU-constrained hardware
 - **Temporal intelligence** with sliding window analysis and event detection
-- **Real-time video streaming** with dual-loop architecture (60fps rendering, 20fps inference)
+- **Real-time video streaming** with dual-loop architecture (~60fps rendering, ~20fps inference)
 - **Comprehensive observability** with latency breakdown and performance metrics
-- **Production deployment** support via Docker containerization
+- **Deployment support** via Docker containerization
 
 ### Design Philosophy
 
-OptiVision prioritizes **real-time performance** and **operational visibility** for edge deployment scenarios. The system is intentionally scoped as a single-node inference service, avoiding distributed complexity while delivering production-grade reliability.
+OptiVision prioritizes **real-time performance** and **operational visibility** for edge deployment scenarios. The system is intentionally scoped as a single-node inference service, avoiding distributed complexity while delivering production-style reliability.
+
+### Scope & Non-Goals
+
+OptiVision focuses on real-time ML inference and system observability. The following are intentionally out of scope for this project:
+
+- Model training or fine-tuning
+- Dataset curation
+- Distributed serving or autoscaling
+- Persistent storage or long-term analytics
+- Full MLOps pipelines (CI/CD, retraining, registries)
+
+These concerns are demonstrated in other projects in the portfolio.
 
 ---
 
@@ -39,13 +53,13 @@ OptiVision prioritizes **real-time performance** and **operational visibility** 
 - **YOLOv8n ONNX Inference**: 12.3MB model optimized for CPU execution
 - **Temporal Intelligence**: 
   - Sliding window analysis (30-frame buffer)
-  - Event detection for object count changes
+  - Event detection for object count changes (intentionally lightweight and scoped to short-term changes in object presence)
   - Recent activity tracking for person/vehicle/animal categories
 - **Real-time Video Processing**:
-  - 60fps canvas rendering for smooth video display
-  - 20fps inference with intelligent backpressure control
+  - ~60fps canvas rendering for smooth video display
+  - ~20fps inference (CPU-bound) with intelligent backpressure control
   - Dual-loop architecture prevents UI blocking
-- **Production Observability**:
+- **Production-Style Observability**:
   - Latency breakdown (preprocess/inference/postprocess)
   - Performance metrics (P50/P95/P99)
   - Health monitoring endpoint
@@ -57,9 +71,9 @@ OptiVision prioritizes **real-time performance** and **operational visibility** 
 |-----------|---------------|-------------|
 | Model | YOLOv8n ONNX (12.3MB) | <100ms inference |
 | Backend | FastAPI + ONNX Runtime | Async request handling |
-| Frontend | Vanilla JavaScript | 60fps video rendering |
+| Frontend | Vanilla JavaScript | ~60fps video rendering |
 | Temporal | Sliding window (deque) | 30-frame analysis |
-| Deployment | Docker containerization | Production-ready |
+| Deployment | Docker containerization | Deployment-ready |
 
 ---
 
@@ -70,7 +84,7 @@ OptiVision prioritizes **real-time performance** and **operational visibility** 
 ```
 Client Browser
      |
-     | WebSocket / HTTP
+     | HTTP (REST)
      v
 ┌─────────────────────────────────────┐
 │      FastAPI Application             │
@@ -98,8 +112,8 @@ Client Browser
 
 **Dual-Loop Design** for smooth real-time video:
 
-- **Render Loop** (60fps): Continuously draws video frames to canvas
-- **Inference Loop** (20fps): Sends frames to backend API with backpressure control
+- **Render Loop** (~60fps): Continuously draws video frames to canvas
+- **Inference Loop** (~20fps, CPU-bound): Sends frames to backend API with backpressure control
 - **Event System**: Updates detections overlay without blocking video stream
 
 ---
@@ -296,7 +310,7 @@ python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 ### Docker Deployment
 
-OptiVision includes a production-ready Docker configuration.
+OptiVision includes a deployment-ready Docker configuration.
 
 **Build and Run:**
 
@@ -504,7 +518,7 @@ Contributions welcome! Areas of interest:
 
 <div align="center">
 
-**Production-ready object detection inference service**
+**Deployment-ready object detection inference service**
 
 Built with FastAPI • ONNX Runtime • YOLOv8n
 
