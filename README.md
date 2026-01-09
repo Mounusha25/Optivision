@@ -10,13 +10,15 @@
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
-[Features](#features) • [Quick Start](#quick-start) • [API Documentation](#api-documentation) • [Deployment](#deployment)
+**🚀 [Live Demo](https://optivision-edge-inference-system.onrender.com)** • [Features](#features) • [Quick Start](#quick-start) • [API Documentation](#api-documentation) • [Deployment](#deployment)
 
 </div>
 
 ---
 
 ## Overview
+
+**🌐 Live Demo**: [https://optivision-edge-inference-system.onrender.com](https://optivision-edge-inference-system.onrender.com)
 
 This project exists to demonstrate how an ML model can be transformed into a reliable, real-time inference system with observable behavior and clean integration boundaries.
 
@@ -214,6 +216,10 @@ python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ---
 
 ## API Documentation
+
+**Live API**: [https://optivision-edge-inference-system.onrender.com](https://optivision-edge-inference-system.onrender.com)
+
+**OpenAPI Docs**: [https://optivision-edge-inference-system.onrender.com/docs](https://optivision-edge-inference-system.onrender.com/docs)
 
 ### Health Endpoint
 

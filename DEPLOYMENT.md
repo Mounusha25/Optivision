@@ -1,5 +1,7 @@
 # OptiVision Deployment Guide
 
+**✅ Live Deployment**: [https://optivision-edge-inference-system.onrender.com](https://optivision-edge-inference-system.onrender.com)
+
 ## Overview
 
 This guide covers deploying OptiVision to production using Docker and cloud platforms. The application is containerized using `Dockerfile.render` and can be deployed to any platform supporting Docker.
@@ -68,9 +70,11 @@ Build time: ~5-10 minutes (first deployment)
 
 ### Step 5: Verify Deployment
 
+**✅ Example Deployment**: [https://optivision-edge-inference-system.onrender.com](https://optivision-edge-inference-system.onrender.com)
+
 **Health Check:**
 ```bash
-curl https://optivision-xxxx.onrender.com/health
+curl https://optivision-edge-inference-system.onrender.com/health
 ```
 
 Expected response:
@@ -86,11 +90,14 @@ Expected response:
 ```
 
 **Frontend:**
-Open `https://optivision-xxxx.onrender.com` in your browser to access the real-time detection interface.
+Open your app URL in browser to access the real-time detection interface.
+
+**OpenAPI Documentation:**
+Visit `/docs` endpoint for interactive API documentation.
 
 **API Test:**
 ```bash
-curl -X POST https://optivision-xxxx.onrender.com/predict \
+curl -X POST https://your-app.onrender.com/predict \
   -H "Content-Type: application/json" \
   -d '{
     "image": "data:image/jpeg;base64,/9j/4AAQSkZJRg...",
