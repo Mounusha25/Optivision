@@ -71,3 +71,4 @@ dmypy.json
 
 # VS Code
 .vscode/
+*.log

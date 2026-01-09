@@ -1,12 +1,71 @@
-.git
-.vscode
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Logs
 *.log
-node_modules
+logs/
+
+# Models (except the required ONNX model)
+*.pt
+*.pth
+*.weights
+models/*
+!models/.gitkeep
+!models/yolov8n.onnx
+
+# Data
+data/
+datasets/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+
+# Environment
 .env
 .env.local
-llama.cpp/build
-llama.cpp/.git
-*.cache
-.pytest_cache
-__pycache__
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# llama.cpp (not needed for production)
+llama.cpp/

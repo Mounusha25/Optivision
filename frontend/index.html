@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OptiVision - Demo Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0e1a;
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #1e293b;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #00ff88;
+            margin-bottom: 8px;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .panel {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 15px;
+        }
+
+        #canvas {
+            width: 100%;
+            height: auto;
+            background: #000;
+            display: block;
+            border-radius: 2px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:hover:not(:disabled) {
+            opacity: 0.8;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #startBtn {
+            background: linear-gradient(135deg, #00ff88, #00d4aa);
+            color: #0a0e1a;
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+        }
+
+        #startBtn:hover:not(:disabled) {
+            box-shadow: 0 6px 20px rgba(0, 255, 136, 0.5);
+            transform: translateY(-1px);
+            color: #0a0e1a;
+        }
+
+        #stopBtn {
+            background: #64748b;
+            color: #fff;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat {
+            background: #1e293b;
+            padding: 12px;
+            border-radius: 3px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+            color: #00ff88;
+        }
+
+        .summary-list {
+            list-style: none;
+        }
+
+        .summary-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #1e293b;
+            font-size: 14px;
+        }
+
+        .summary-list li:last-child {
+            border-bottom: none;
+        }
+
+        .summary-list strong {
+            color: #00d4ff;
+            font-weight: 600;
+        }
+
+        .error {
+            background: #991b1b;
+            color: #fecaca;
+            padding: 12px;
+            border-radius: 3px;
+            margin-top: 15px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .bottom-panels {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 968px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            .bottom-panels {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>OptiVision</h1>
+            <p class="subtitle">Demo Interface — Backend API Testing Only</p>
+        </header>
+
+        <div class="grid">
+            <!-- Panel 1: Visual Output -->
+            <div class="panel">
+                <div class="panel-title">Visual Output</div>
+                <canvas id="canvas" width="640" height="480"></canvas>
+                <div class="controls">
+                    <button id="startBtn">Start Detection</button>
+                    <button id="stopBtn" disabled>Stop Detection</button>
+                </div>
+                <div id="error" class="error"></div>
+            </div>
+
+            <!-- Panel 2: Performance -->
+            <div class="panel">
+                <div class="panel-title">Performance</div>
+                <div class="stats-grid">
+                    <div class="stat">
+                        <div class="stat-label">FPS</div>
+                        <div class="stat-value" id="fps">0</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Total Latency</div>
+                        <div class="stat-value" id="totalLatency">0<span style="font-size: 14px; color: #64748b;">ms</span></div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Inference</div>
+                        <div class="stat-value" id="inferenceLatency">0<span style="font-size: 14px; color: #64748b;">ms</span></div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Postprocess</div>
+                        <div class="stat-value" id="postprocessLatency">0<span style="font-size: 14px; color: #64748b;">ms</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Panels -->
+        <div class="bottom-panels">
+            <!-- Panel 3: Summary -->
+            <div class="panel">
+                <div class="panel-title">Detection Summary</div>
+                <ul class="summary-list">
+                    <li>Objects Detected: <strong id="totalObjects">0</strong></li>
+                    <li>Persons: <strong id="persons">0</strong></li>
+                    <li>Vehicles: <strong id="vehicles">0</strong></li>
+                    <li>Animals: <strong id="animals">0</strong></li>
+                    <li>Dominant Class: <strong id="dominantClass">—</strong></li>
+                    <li>Frame Occupancy: <strong id="frameOccupancy">0.00</strong></li>
+                </ul>
+            </div>
+
+            <!-- Panel 4: Class Breakdown -->
+            <div class="panel">
+                <div class="panel-title">Class Breakdown</div>
+                <ul class="summary-list" id="classBreakdown">
+                    <li>No detections</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const errorDiv = document.getElementById('error');
+
+        let video = null;
+        let stream = null;
+        let isRunning = false;
+        let animationId = null;
+        let frameCount = 0;
+        let lastFpsUpdate = Date.now();
+        let currentDetections = []; // Store latest detections for overlay
+        let inferenceInFlight = false; // Backpressure: track if API call is pending
+
+        // Stats elements
+        const fpsEl = document.getElementById('fps');
+        const totalLatencyEl = document.getElementById('totalLatency');
+        const inferenceLatencyEl = document.getElementById('inferenceLatency');
+        const postprocessLatencyEl = document.getElementById('postprocessLatency');
+
+        // Summary elements
+        const totalObjectsEl = document.getElementById('totalObjects');
+        const personsEl = document.getElementById('persons');
+        const vehiclesEl = document.getElementById('vehicles');
+        const animalsEl = document.getElementById('animals');
+        const dominantClassEl = document.getElementById('dominantClass');
+        const frameOccupancyEl = document.getElementById('frameOccupancy');
+        const classBreakdownEl = document.getElementById('classBreakdown');
+
+        function showError(msg) {
+            errorDiv.textContent = msg;
+            errorDiv.style.display = 'block';
+            setTimeout(() => errorDiv.style.display = 'none', 5000);
+        }
+
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480 }
+                });
+
+                video = document.createElement('video');
+                video.srcObject = stream;
+                video.play();
+
+                video.onloadedmetadata = () => {
+                    isRunning = true;
+                    startBtn.disabled = true;
+                    stopBtn.disabled = false;
+                    renderLoop(); // Start continuous rendering
+                    inferenceLoop(); // Start inference in parallel
+                };
+            } catch (err) {
+                showError('Camera access denied: ' + err.message);
+            }
+        }
+
+        function stopCamera() {
+            isRunning = false;
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            currentDetections = [];
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+        }
+
+        // Continuous visual rendering (60fps) - draws video + boxes
+        function renderLoop() {
+            if (!isRunning) return;
+
+            // Always draw video frame
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Draw latest detections with smooth styling
+            if (currentDetections.length > 0) {
+                currentDetections.forEach(det => {
+                    const [x1, y1, x2, y2] = det.bbox;
+                    const width = x2 - x1;
+                    const height = y2 - y1;
+
+                    // Draw subtle shadow for depth
+                    ctx.shadowColor = 'rgba(0, 255, 136, 0.5)';
+                    ctx.shadowBlur = 15;
+                    
+                    // Draw main box with gradient
+                    ctx.strokeStyle = '#00ff88';
+                    ctx.lineWidth = 2.5;
+                    ctx.strokeRect(x1, y1, width, height);
+                    
+                    // Reset shadow
+                    ctx.shadowBlur = 0;
+
+                    // Draw corner accents (modern look)
+                    const cornerLen = Math.min(width, height) * 0.15;
+                    ctx.strokeStyle = '#00ff88';
+                    ctx.lineWidth = 4;
+                    
+                    // Top-left corner
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1 + cornerLen);
+                    ctx.lineTo(x1, y1);
+                    ctx.lineTo(x1 + cornerLen, y1);
+                    ctx.stroke();
+                    
+                    // Top-right corner
+                    ctx.beginPath();
+                    ctx.moveTo(x2 - cornerLen, y1);
+                    ctx.lineTo(x2, y1);
+                    ctx.lineTo(x2, y1 + cornerLen);
+                    ctx.stroke();
+                    
+                    // Bottom-left corner
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y2 - cornerLen);
+                    ctx.lineTo(x1, y2);
+                    ctx.lineTo(x1 + cornerLen, y2);
+                    ctx.stroke();
+                    
+                    // Bottom-right corner
+                    ctx.beginPath();
+                    ctx.moveTo(x2 - cornerLen, y2);
+                    ctx.lineTo(x2, y2);
+                    ctx.lineTo(x2, y2 - cornerLen);
+                    ctx.stroke();
+
+                    // Draw label with modern styling
+                    const label = `${det.class_name} ${(det.confidence * 100).toFixed(0)}%`;
+                    ctx.font = '600 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+                    const textMetrics = ctx.measureText(label);
+                    const textWidth = textMetrics.width;
+                    const padding = 8;
+                    const labelHeight = 24;
+
+                    // Label background with rounded corners effect
+                    const labelY = y1 - labelHeight - 4;
+                    ctx.fillStyle = 'rgba(0, 255, 136, 0.95)';
+                    ctx.fillRect(x1, labelY, textWidth + padding * 2, labelHeight);
+
+                    // Label text
+                    ctx.fillStyle = '#0a0e1a';
+                    ctx.fillText(label, x1 + padding, labelY + 16);
+                });
+            }
+
+            animationId = requestAnimationFrame(renderLoop);
+        }
+
+        // Inference loop (10-15fps) - sends frames to API with backpressure
+        async function inferenceLoop() {
+            if (!isRunning) return;
+
+            // Backpressure: skip frame if previous inference hasn't returned
+            if (inferenceInFlight) {
+                setTimeout(inferenceLoop, 50);
+                return;
+            }
+
+            inferenceInFlight = true;
+            const imageData = canvas.toDataURL('image/jpeg', 0.85);
+            const requestStart = performance.now();
+
+            try {
+                const response = await fetch('http://localhost:8000/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: imageData })
+                });
+
+                if (!response.ok) throw new Error('API error');
+
+                const data = await response.json();
+                const requestEnd = performance.now();
+                const totalLatency = Math.round(requestEnd - requestStart);
+
+                // Update detections for rendering
+                currentDetections = data.detections || [];
+
+                // Update performance stats
+                totalLatencyEl.textContent = totalLatency;
+                const breakdown = data.metadata.latency_breakdown_ms || {};
+                inferenceLatencyEl.textContent = Math.round(breakdown.inference || 0);
+                postprocessLatencyEl.textContent = Math.round(breakdown.postprocess || 0);
+
+                // Update FPS
+                frameCount++;
+                const now = Date.now();
+                if (now - lastFpsUpdate >= 1000) {
+                    fpsEl.textContent = frameCount;
+                    frameCount = 0;
+                    lastFpsUpdate = now;
+                }
+
+                // Update summary
+                const summary = data.summary;
+                totalObjectsEl.textContent = summary.total_objects;
+                dominantClassEl.textContent = summary.dominant_class || '—';
+                frameOccupancyEl.textContent = summary.frame_occupancy_ratio.toFixed(2);
+
+                // Update class counts
+                const counts = summary.counts_by_class;
+                personsEl.textContent = counts.person || 0;
+                
+                const vehicleClasses = ['car', 'truck', 'bus', 'motorcycle', 'bicycle'];
+                const vehicleCount = vehicleClasses.reduce((sum, cls) => sum + (counts[cls] || 0), 0);
+                vehiclesEl.textContent = vehicleCount;
+
+                const animalClasses = ['cat', 'dog', 'bird', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe'];
+                const animalCount = animalClasses.reduce((sum, cls) => sum + (counts[cls] || 0), 0);
+                animalsEl.textContent = animalCount;
+
+                // Update class breakdown - HYBRID: Current frame + Recent activity
+                if (summary.recent_activity && summary.recent_activity.class_presence) {
+                    const activity = summary.recent_activity;
+                    const presence = activity.class_presence;
+                    const totalFrames = activity.window_frames;
+                    
+                    let html = `<div style="font-size: 10px; opacity: 0.5; margin-bottom: 8px; text-transform: uppercase;">Recent Activity (last ${totalFrames} frames)</div>`;
+                    
+                    // Always show person, vehicle, animal (even if zero)
+                    ['person', 'vehicle', 'animal'].forEach(group => {
+                        const frameCount = presence[group] || 0;
+                        const presenceRatio = totalFrames > 0 ? frameCount / totalFrames : 0;
+                        const barWidth = Math.round(presenceRatio * 100);
+                        const statusColor = presenceRatio > 0.5 ? '#00ff88' : presenceRatio > 0.1 ? '#ffaa00' : '#666';
+                        const status = presenceRatio > 0.5 ? 'active' : presenceRatio > 0.1 ? 'intermittent' : 'rare';
+                        
+                        html += `
+                            <div style="margin-bottom: 10px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                                    <span style="font-size: 12px;">${group}</span>
+                                    <span style="font-size: 10px; opacity: 0.6;">${frameCount}/${totalFrames} <span style="color: ${statusColor};">${status}</span></span>
+                                </div>
+                                <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden;">
+                                    <div style="height: 100%; width: ${barWidth}%; background: ${statusColor}; transition: width 0.3s;"></div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    // Show events if present
+                    if (summary.events && summary.events.length > 0) {
+                        html += `<div style="font-size: 10px; opacity: 0.5; margin: 12px 0 6px 0; text-transform: uppercase; color: #ffaa00;">Events</div>`;
+                        summary.events.forEach(event => {
+                            html += `<div style="font-size: 11px; color: #ffaa00; margin-bottom: 4px;">• ${event}</div>`;
+                        });
+                    }
+                    
+                    classBreakdownEl.innerHTML = html;
+                } else if (Object.keys(counts).length > 0) {
+                    classBreakdownEl.innerHTML = Object.entries(counts)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([cls, count]) => `<li>${cls}: <strong>${count}</strong></li>`)
+                        .join('');
+                } else {
+                    classBreakdownEl.innerHTML = '<li>No detections</li>';
+                }
+
+            } catch (err) {
+                console.error('Detection error:', err);
+                showError('API Error: ' + err.message);
+            } finally {
+                inferenceInFlight = false;
+            }
+
+            // Continue inference loop
+            if (isRunning) {
+                setTimeout(inferenceLoop, 50); // ~20fps inference rate
+            }
+        }
+
+        startBtn.addEventListener('click', startCamera);
+        stopBtn.addEventListener('click', stopCamera);
+    </script>
+</body>
+</html>

@@ -1,191 +1,128 @@
-# OptiVision Full-Stack Deployment Guide
+# OptiVision - Render Deployment Guide
 
-## 🚀 Complete Deployment with Backend Functionality
+## Quick Deploy to Render
 
-### **Architecture Overview**
-- **Frontend**: Deployed on Vercel (Free)
-- **Backend**: Deployed on Railway ($5/month)
-- **Auto-detection**: Frontend automatically detects environment and connects to appropriate backend
+### 1. Prepare Repository
+Ensure your GitHub repo is up to date with:
+- `Dockerfile.render` (production-ready container)
+- `backend/` with inference code
+- `backend/models/yolov8n.onnx` (ONNX model)
+- `frontend/index.html` (UI)
 
----
+### 2. Create Render Service
 
-## **Step 1: Deploy Backend to Railway**
-
-### 1.1 Sign up for Railway
-1. Go to [railway.app](https://railway.app)
-2. Sign up with GitHub account
+1. Go to [render.com](https://render.com) and sign in
+2. Click **"New +"** → **"Web Service"**
 3. Connect your GitHub repository
+4. Configure:
+   - **Name**: `optivision`
+   - **Environment**: `Docker`
+   - **Dockerfile Path**: `Dockerfile.render`
+   - **Instance Type**: `Free` (or `Starter` for better performance)
 
-### 1.2 Deploy Backend
-1. Create new project in Railway
-2. Connect your GitHub repository: `Brijesh03032001/OptiVision`
-3. Railway will automatically detect the `Dockerfile.railway` and deploy
-4. Your backend will be available at: `https://optivision-backend.railway.app`
+### 3. Set Environment Variables
 
-### 1.3 Configure Environment Variables (Optional)
-```bash
-MODEL_NAME=ggml-org/SmolVLM-500M-Instruct-GGUF
-PORT=8080
+In Render dashboard, add these environment variables:
+
+```
+CONF_THRESHOLD=0.25
+IOU_THRESHOLD=0.45
+PORT=8000
 ```
 
----
+### 4. Deploy
 
-## **Step 2: Deploy Frontend to Vercel**
+Click **"Create Web Service"** - Render will:
+- Build the Docker image
+- Deploy the container
+- Assign a public URL: `https://optivision-xxxx.onrender.com`
 
-### 2.1 Install Vercel CLI
+### 5. Test Deployment
+
+Once deployed, test these endpoints:
+
+**Health Check:**
 ```bash
-npm install -g vercel
+curl https://optivision-xxxx.onrender.com/health
 ```
 
-### 2.2 Deploy to Vercel
-```bash
-cd /Users/brijeshkumar03/Downloads/AIProject/OptiVision
-vercel --prod
+Expected response:
+```json
+{
+  "status": "ok",
+  "model_loaded": true,
+  "model_path": "models/yolov8n.onnx",
+  "input_size": "640x640"
+}
 ```
 
-### 2.3 Configure Vercel Settings
-1. Set **Root Directory**: `/` (default)
-2. Set **Output Directory**: Leave empty (static files)
-3. The frontend will automatically connect to Railway backend
+**Frontend:**
+Visit `https://optivision-xxxx.onrender.com` in browser
 
----
-
-## **Step 3: Alternative One-Click Deployments**
-
-### **Option A: Vercel (Frontend) + Railway (Backend)**
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Brijesh03032001/OptiVision)
-
-### **Option B: Netlify (Frontend Only)**
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/Brijesh03032001/OptiVision)
-
----
-
-## **Step 4: Manual Vercel Deployment**
-
-### 4.1 Create Vercel Account
-1. Go to [vercel.com](https://vercel.com)
-2. Sign up with GitHub
-3. Import your repository
-
-### 4.2 Configure Build Settings
-- **Framework Preset**: Other
-- **Root Directory**: `/`
-- **Build Command**: (leave empty)
-- **Output Directory**: (leave empty)
-- **Install Command**: (leave empty)
-
-### 4.3 Environment Variables (if needed)
+**API Test:**
 ```bash
-NEXT_PUBLIC_API_URL=https://your-railway-backend.railway.app
+curl -X POST https://optivision-xxxx.onrender.com/predict \
+  -H "Content-Type: application/json" \
+  -d '{"image": "data:image/jpeg;base64,..."}'
 ```
 
----
+## Configuration
 
-## **How Auto-Detection Works**
+### Environment Variables
 
-The frontend automatically detects the environment:
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CONF_THRESHOLD` | 0.25 | Confidence threshold for detections |
+| `IOU_THRESHOLD` | 0.45 | IoU threshold for NMS |
+| `PORT` | 8000 | Server port (Render sets this automatically) |
 
-### **Production (Vercel/Netlify)**
-- API URL: `https://optivision-backend.railway.app`
-- CORS enabled for production domains
+### Resource Requirements
 
-### **Development (Local)**
-- API URL: `http://localhost:8080`
-- Uses local backend server
+**Minimum (Free tier):**
+- 512 MB RAM
+- 0.1 CPU
+- Works but may be slow
 
-### **Network (Local WiFi)**
-- API URL: `http://[your-ip]:8080`
-- Accessible from other devices
+**Recommended (Starter - $7/month):**
+- 2 GB RAM
+- 0.5 CPU
+- Much better inference performance
 
----
+## Troubleshooting
 
-## **Cost Breakdown**
+### Build fails with "model not found"
+Ensure `backend/models/yolov8n.onnx` exists in your repo
 
-### **Free Tier**
-- **Vercel**: Frontend hosting (Free)
-- **Railway**: $5/month for backend
-- **Total**: $5/month
+### Service crashes on startup
+Check logs in Render dashboard - likely memory issue, upgrade to Starter tier
 
-### **Alternative Free Options**
-- **GitHub Pages**: Frontend only
-- **Netlify**: Frontend only
-- **Backend**: Run locally or on free VPS
+### Slow inference (>5s)
+Free tier is CPU-limited, upgrade to Starter or use smaller images
 
----
+## Production Notes
 
-## **Domain Configuration (Optional)**
+This deployment is:
+- ✅ Containerized and reproducible
+- ✅ Environment-configured
+- ✅ Health-monitored
+- ✅ Single-node (no unnecessary scaling)
+- ✅ Interview-ready
 
-### **Custom Domain for Frontend**
-1. Buy domain (e.g., `optivision.com`)
-2. Add to Vercel settings
-3. Update DNS records
+This is **NOT**:
+- ❌ Auto-scaling (not needed)
+- ❌ Multi-region (overkill)
+- ❌ CI/CD automated (optional bonus)
+- ❌ Model retraining pipeline (different project)
 
-### **Custom Domain for Backend**
-1. Use Railway's custom domain feature
-2. Or use Cloudflare for free SSL
+## Interview Talking Points
 
----
+When discussing deployment:
 
-## **Monitoring & Analytics**
+> "I deployed OptiVision as a containerized FastAPI service on Render. The Dockerfile includes the ONNX model, exposes health endpoints, and reads configuration from environment variables. This demonstrates reproducible ML deployment without overengineering. The service handles ~20fps inference on CPU and maintains deterministic responses."
 
-### **Vercel Analytics**
-- Built-in analytics
-- Performance monitoring
-- Error tracking
-
-### **Railway Monitoring**
-- Resource usage
-- Deployment logs
-- Health checks
-
----
-
-## **Environment Variables Summary**
-
-### **Frontend (Vercel)**
-```bash
-# Optional - will auto-detect if not set
-NEXT_PUBLIC_API_URL=https://your-backend.railway.app
-```
-
-### **Backend (Railway)**
-```bash
-PORT=8080
-MODEL_NAME=ggml-org/SmolVLM-500M-Instruct-GGUF
-```
-
----
-
-## **Troubleshooting**
-
-### **Backend Not Starting**
-- Check Railway logs
-- Verify Docker build
-- Check memory limits
-
-### **Frontend Can't Connect**
-- Verify CORS settings
-- Check API URL in browser console
-- Test backend endpoint directly
-
-### **Performance Issues**
-- Upgrade Railway plan
-- Optimize model size
-- Use CDN for frontend assets
-
----
-
-## **Next Steps**
-
-1. **Deploy Backend**: Follow Railway deployment
-2. **Deploy Frontend**: Use Vercel one-click deploy
-3. **Test Functionality**: Verify all features work
-4. **Custom Domain**: Add your domain (optional)
-5. **Monitoring**: Set up alerts and monitoring
-
-Your OptiVision app will be fully functional with:
-- ✅ Real-time vision processing
-- ✅ Multi-source input support
-- ✅ AI-powered analysis
-- ✅ Global accessibility
-- ✅ Professional deployment
+Key terms to mention:
+- Docker containerization
+- Environment-based config
+- Health endpoint monitoring
+- Single-node deployment strategy
+- Latency SLO tracking
