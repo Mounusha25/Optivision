@@ -293,11 +293,17 @@ async def health_check():
 @app.get("/")
 async def root():
     """Serve the demo UI"""
-    frontend_path = Path(__file__).parent.parent.parent / "frontend" / "index.html"
+    # In Docker, frontend is at /app/frontend
+    frontend_path = Path("/app/frontend/index.html")
     if frontend_path.exists():
         return FileResponse(frontend_path)
     else:
-        raise HTTPException(status_code=404, detail="Frontend not found")
+        # Fallback for local development
+        frontend_path = Path(__file__).parent.parent.parent / "frontend" / "index.html"
+        if frontend_path.exists():
+            return FileResponse(frontend_path)
+        else:
+            raise HTTPException(status_code=404, detail="Frontend not found")
 
 
 @app.get("/detection")
